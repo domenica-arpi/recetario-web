@@ -1,0 +1,14 @@
+# Dependencias y compilados
+node_modules/
+dist/
+
+# Variables de entorno (el ejemplo .env.example sí se sube)
+.env
+
+# Registros del sistema
+*.log
+.DS_Store
+Thumbs.db
+
+# Datos locales: el servidor crea backend/data/recetas.json si no existe
+backend/data/recetas.json
