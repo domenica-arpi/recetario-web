@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const { inicializarArchivo, leerRecetas } = require("./utils/almacen");
  
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -12,8 +13,10 @@ app.use(cors({ origin: /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/ }));
 app.use(express.json());
  
 app.get("/registros", (req, res) => {
-  res.status(200).json([]);
+  res.status(200).json(leerRecetas());
 });
+ 
+inicializarArchivo();
  
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
