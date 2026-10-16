@@ -1,28 +1,30 @@
 import { useState } from "react";
+import { crearReceta } from "../api";
 import { CATEGORIAS } from "../utils/categorias";
 import { LIMITES, fechaHoy, validarFormulario } from "../utils/validar";
 import Campo from "./Campo";
+import Mensaje from "./Mensaje";
 
 function formularioVacio() {
   return { nombre: "", email: "", titulo: "", descripcion: "", fecha: fechaHoy(), categoria: "" };
 }
 
-export default function FormularioReceta() {
+export default function FormularioReceta({ onGuardada, onIntento }) {
   const [datos, setDatos] = useState(formularioVacio);
   const [errores, setErrores] = useState({});
+  const [errorServidor, setErrorServidor] = useState("");
+  const [enviando, setEnviando] = useState(false);
 
   const hoy = fechaHoy();
 
   function manejarCambio(e) {
     const { name, value } = e.target;
     setDatos((anteriores) => ({ ...anteriores, [name]: value }));
-    // Al corregir un campo se limpia su mensaje de error
     if (errores[name]) {
       setErrores((anteriores) => ({ ...anteriores, [name]: undefined }));
     }
   }
 
-  // Atributos comunes de cada control (estado, accesibilidad)
   function propsDe(nombre) {
     return {
       id: nombre,
@@ -34,26 +36,45 @@ export default function FormularioReceta() {
     };
   }
 
-  function manejarEnvio(e) {
+  async function manejarEnvio(e) {
     e.preventDefault();
+    setErrorServidor("");
 
     const nuevos = validarFormulario(datos);
     setErrores(nuevos);
     const campos = Object.keys(nuevos);
     if (campos.length > 0) {
-      // No se envían datos inválidos: se enfoca el primer campo con error
       document.getElementById(campos[0])?.focus();
       return;
     }
 
-    // Por ahora solo mostramos los datos válidos; en el paso 3.9 se envían a la API
-    console.log("Datos válidos:", datos);
+    if (onIntento) onIntento();
+    setEnviando(true);
+    try {
+      const creada = await crearReceta({
+        nombre: datos.nombre.trim(),
+        email: datos.email.trim(),
+        titulo: datos.titulo.trim(),
+        descripcion: datos.descripcion.trim(),
+        fecha: datos.fecha,
+        categoria: datos.categoria,
+      });
+      setDatos(formularioVacio());
+      setErrores({});
+      if (onGuardada) onGuardada(creada);
+    } catch (error) {
+      setErrorServidor(error.message);
+    } finally {
+      setEnviando(false);
+    }
   }
 
   const largo = datos.descripcion.trim().length;
 
   return (
     <form className="formulario" onSubmit={manejarEnvio} noValidate>
+      <Mensaje tipo="error" texto={errorServidor} />
+
       <div className="formulario__rejilla">
         <Campo id="nombre" etiqueta="Nombre del autor" error={errores.nombre}>
           <input {...propsDe("nombre")} autoComplete="name" placeholder="Ej.: María Pérez" />
@@ -110,7 +131,9 @@ export default function FormularioReceta() {
         {errores.categoria && <p className="campo__error">{errores.categoria}</p>}
       </fieldset>
 
-      <button className="boton" type="submit">Publicar receta</button>
+      <button className="boton" type="submit" disabled={enviando} aria-busy={enviando}>
+        {enviando ? "Guardando…" : "Publicar receta"}
+      </button>
     </form>
   );
 }
